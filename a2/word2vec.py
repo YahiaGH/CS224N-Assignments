@@ -108,24 +108,26 @@ def negSamplingLossAndGradient(
 
     ### YOUR CODE HERE
     
-    Sig_Outer = sigmoid(np.dot(outsideVectors[outsideWordIdx,:] , centerWordVec[:,np.newaxis]))
+    Sig_Outer = sigmoid(np.dot(outsideVectors[outsideWordIdx,:] , centerWordVec))
     Sig_K = sigmoid( - np.dot(outsideVectors[negSampleWordIndices,:] , centerWordVec[:,np.newaxis] ))
 
     loss = - np.log(Sig_Outer) - np.log(Sig_K).sum(axis=0)
-    
-    gradCenterVec = np.dot(outsideVectors[outsideWordIdx,:] , (Sig_Outer - 1)) \
-        + np.dot(outsideVectors[negSampleWordIndices,:].T , (1 - Sig_K))
+    gradCenterVec = np.dot((outsideVectors[outsideWordIdx,:])[:,np.newaxis] , (Sig_Outer - 1)) \
+        + np.dot( outsideVectors[negSampleWordIndices,:].T , (1 - Sig_K))
     
     gradOutsideVecs = np.zeros(outsideVectors.shape)
-    gradOutsideVecs[outsideWordIdx,:] = np.dot(centerWordVec.T , (Sig_Outer - 1))
-    gradOutsideVecs[negSampleWordIndices,:] = np.dot((1 - Sig_K) , centerWordVec.T)
+    gradOutsideVecs[outsideWordIdx,:] = np.dot(centerWordVec , (Sig_Outer - 1))
+    M = np.dot((1 - Sig_K) , centerWordVec[np.newaxis,:])
+    indices = np.asarray(negSampleWordIndices)
+    unique_indices = list(set(negSampleWordIndices))
+    Z = [M[indices == index].sum(axis = 0) for index in unique_indices]
+    gradOutsideVecs[unique_indices,:] = Z
 
     ### Please use your implementation of sigmoid in here.
 
 
     ### END YOUR CODE
-
-    return loss, gradCenterVec, gradOutsideVecs
+    return loss, gradCenterVec[:,0], gradOutsideVecs
 
 
 def skipgram(currentCenterWord, windowSize, outsideWords, word2Ind,
@@ -172,7 +174,7 @@ def skipgram(currentCenterWord, windowSize, outsideWords, word2Ind,
         L , gradVec , outsideVecs = word2vecLossAndGradient(Vc,outsideWordIdx,outsideVectors, dataset)
         
         loss += L
-        gradCenterVecs[centerWordIndex] += gradVec
+        gradCenterVecs[centerWordIndex,:] += gradVec
         gradOutsideVectors += outsideVecs
 
     ### YOUR CODE HERE
