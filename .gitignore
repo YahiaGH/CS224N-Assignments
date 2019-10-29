@@ -1,3 +1,9 @@
 .vscode
 .__pycache__
 *.pyc
+datasets
+*.npy
+*.pickle
+Thumbs.db
+*.json
+*-checkpoint.ipynb

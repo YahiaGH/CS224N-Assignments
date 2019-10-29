@@ -106,28 +106,33 @@ def negSamplingLossAndGradient(
     negSampleWordIndices = getNegativeSamples(outsideWordIdx, dataset, K)
     indices = [outsideWordIdx] + negSampleWordIndices
 
-    ### YOUR CODE HERE
-    
-    Sig_Outer = sigmoid(np.dot(outsideVectors[outsideWordIdx,:] , centerWordVec))
-    Sig_K = sigmoid( - np.dot(outsideVectors[negSampleWordIndices,:] , centerWordVec[:,np.newaxis] ))
-
-    loss = - np.log(Sig_Outer) - np.log(Sig_K).sum(axis=0)
-    gradCenterVec = np.dot((outsideVectors[outsideWordIdx,:])[:,np.newaxis] , (Sig_Outer - 1)) \
-        + np.dot( outsideVectors[negSampleWordIndices,:].T , (1 - Sig_K))
-    
     gradOutsideVecs = np.zeros(outsideVectors.shape)
-    gradOutsideVecs[outsideWordIdx,:] = np.dot(centerWordVec , (Sig_Outer - 1))
-    M = np.dot((1 - Sig_K) , centerWordVec[np.newaxis,:])
-    indices = np.asarray(negSampleWordIndices)
-    unique_indices = list(set(negSampleWordIndices))
-    Z = [M[indices == index].sum(axis = 0) for index in unique_indices]
-    gradOutsideVecs[unique_indices,:] = Z
+    loss = 0.0
 
+    ### YOUR CODE HERE
+
+    outsideWordVector = outsideVectors[outsideWordIdx,:]    
+    unique = list(set(negSampleWordIndices))
+    Occurences = np.array([negSampleWordIndices.count(num) for num in unique])
+    negativeSamples = outsideVectors[unique,:]
+
+    Sig_Outer = sigmoid( np.matmul(outsideWordVector, centerWordVec))
+    Sig_K = sigmoid( - np.matmul( negativeSamples , centerWordVec ))
+
+    loss = - np.log(Sig_Outer) - np.sum(np.log(Sig_K) * Occurences)
+    Sig_K = (1 - Sig_K) * Occurences
+    gradCenterVec =  outsideWordVector * (Sig_Outer - 1) + np.matmul(  Sig_K , negativeSamples)
+    
+    
+    gradOutsideVecs[outsideWordIdx,:] = centerWordVec * (Sig_Outer - 1)
+    gradOutsideVecs[unique,:] = np.matmul(Sig_K[:,np.newaxis],centerWordVec[np.newaxis,:])
+    # indices = np.asarray(negSampleWordIndices)
+    # unique_indices = list(set(negSampleWordIndices))
+    # Z = [M[indices == index].sum(axis = 0) for index in unique_indices]
     ### Please use your implementation of sigmoid in here.
-
-
     ### END YOUR CODE
-    return loss, gradCenterVec[:,0], gradOutsideVecs
+
+    return loss, gradCenterVec, gradOutsideVecs
 
 
 def skipgram(currentCenterWord, windowSize, outsideWords, word2Ind,
